@@ -1,0 +1,17 @@
+{
+  "name": "application-copilot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace @application-copilot/extension",
+    "dev:api": "npm run dev --workspace @application-copilot/api",
+    "dev:extension": "npm run dev --workspace @application-copilot/extension",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  }
+}
