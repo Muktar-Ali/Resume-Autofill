@@ -121,12 +121,17 @@ export function scanApplicationPage(): DetectedField[] {
     }
 
     fields.push({
-      fieldId: input.id || name || `field-${index}`,
+      fieldId: `${input.id || name || type}-${index}`,
       label: fieldLabel(control, type) || `Unlabeled ${type} field`,
       controlType: type,
       name,
       required: input.required || control.getAttribute("aria-required") === "true",
-      options
+      options,
+      locator: {
+        id: input.id,
+        name,
+        domIndex: index
+      }
     });
   });
 

@@ -4,7 +4,15 @@ import { createEmptyProfile, type DetectedField } from "@application-copilot/sha
 import { createFieldPreview, matchProfilePath, normalizeFieldLabel } from "../src/matching/field-matcher";
 
 function field(label: string, controlType: DetectedField["controlType"] = "text"): DetectedField {
-  return { fieldId: label, label, controlType, name: "", required: false, options: [] };
+  return {
+    fieldId: label,
+    label,
+    controlType,
+    name: "",
+    required: false,
+    options: [],
+    locator: { id: "", name: "", domIndex: 0 }
+  };
 }
 
 test("normalizes punctuation, casing, and required markers", () => {

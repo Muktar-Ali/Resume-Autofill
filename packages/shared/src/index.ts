@@ -39,6 +39,12 @@ export interface DetectedFieldOption {
   value: string;
 }
 
+export interface FieldLocator {
+  id: string;
+  name: string;
+  domIndex: number;
+}
+
 export interface DetectedField {
   fieldId: string;
   label: string;
@@ -46,9 +52,26 @@ export interface DetectedField {
   name: string;
   required: boolean;
   options: DetectedFieldOption[];
+  locator: FieldLocator;
 }
 
 export type FieldClassification = "recognized" | "unknown" | "unsupported" | "excluded";
+
+export interface FieldFillInstruction {
+  fieldId: string;
+  label: string;
+  controlType: DetectedControlType;
+  locator: FieldLocator;
+  value: string;
+}
+
+export type FieldFillStatus = "filled" | "skipped-nonempty" | "not-found" | "no-option" | "unsupported";
+
+export interface FieldFillResult {
+  fieldId: string;
+  status: FieldFillStatus;
+  message: string;
+}
 
 export interface ApplicantProfile {
   version: 1;

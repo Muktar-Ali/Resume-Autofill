@@ -64,8 +64,10 @@ Then:
 3. Click the Application Copilot extension icon.
 4. Select **Scan this page**.
 5. Confirm the preview reports 10 fields: 7 recognized, 1 unknown, 1 unsupported, and 1 excluded.
+6. Review the checked recognized fields and select **Fill selected fields**.
+7. Confirm only empty fields with saved profile values are changed.
 
-The scanner reads field structure only: labels, control types, names, required status, and available dropdown/radio options. It does not read entered values, modify fields, upload files, or submit forms.
+The scanner reads field structure only: labels, control types, names, required status, and available dropdown/radio options. It does not read entered values. Filling is a separate user-triggered action that skips existing values, file uploads, passwords, unknown questions, and form submission.
 
 After changing extension code, run `npm run build` again and press the reload button for the extension on `chrome://extensions`. The Node API automatically restarts when its source changes.
 
@@ -94,6 +96,7 @@ JSON is used during this first transition to keep the proven profile model intac
 - Browser access is allowed for Chrome-extension pages and the local development UI.
 - The extension uses `activeTab` to inspect a page only after the user clicks **Scan this page**.
 - The scanner does not receive permanent access to every website.
+- Autofill sends only user-selected profile values to the active page and never submits the form.
 - No data is transmitted to an external server.
 - No AI provider is connected.
 - Nothing submits applications automatically.
@@ -103,8 +106,8 @@ Before distributing the extension, the local API will need extension authenticat
 ## Planned milestones
 
 1. React/Node/SQLite transition — **complete**
-2. Page-field detection and preview — **current**
-3. Standard-field autofill
+2. Page-field detection and preview — **complete**
+3. Standard-field autofill — **current**
 4. Unknown-question inbox and learned-answer memory
 5. Similar-question matching
 6. Secure, job-specific AI drafting
