@@ -3,7 +3,7 @@
   "name": "Application Copilot",
   "version": "0.2.0",
   "description": "Remember job application information and help fill applications with you in control.",
-  "permissions": ["storage"],
+  "permissions": ["activeTab", "scripting"],
   "host_permissions": ["http://127.0.0.1:4318/*"],
   "action": {
     "default_title": "Application Copilot",

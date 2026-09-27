@@ -1,5 +1,55 @@
 export type YesNoAnswer = "" | "yes" | "no";
 
+export type ProfileFieldPath =
+  | "personal.firstName"
+  | "personal.lastName"
+  | "personal.preferredName"
+  | "personal.email"
+  | "personal.phone"
+  | "personal.city"
+  | "personal.state"
+  | "personal.country"
+  | "personal.postalCode"
+  | "links.linkedin"
+  | "links.github"
+  | "links.portfolio"
+  | "work.currentTitle"
+  | "work.currentCompany"
+  | "work.yearsOfExperience"
+  | "work.authorizedToWork"
+  | "work.requiresSponsorship";
+
+export type DetectedControlType =
+  | "text"
+  | "email"
+  | "tel"
+  | "url"
+  | "number"
+  | "date"
+  | "select"
+  | "textarea"
+  | "checkbox"
+  | "radio"
+  | "file"
+  | "password"
+  | "other";
+
+export interface DetectedFieldOption {
+  label: string;
+  value: string;
+}
+
+export interface DetectedField {
+  fieldId: string;
+  label: string;
+  controlType: DetectedControlType;
+  name: string;
+  required: boolean;
+  options: DetectedFieldOption[];
+}
+
+export type FieldClassification = "recognized" | "unknown" | "unsupported" | "excluded";
+
 export interface ApplicantProfile {
   version: 1;
   updatedAt: string | null;

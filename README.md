@@ -49,6 +49,24 @@ Then install the compiled extension:
 6. Open Application Copilot and select **Set up profile**.
 7. Save a test profile, close the page, and reopen it to verify persistence.
 
+## Test field detection
+
+With the local API running, open the safe demo application:
+
+```text
+http://127.0.0.1:4318/demo
+```
+
+Then:
+
+1. Return to `chrome://extensions` and reload Application Copilot after each new build.
+2. Open the demo application in a regular tab.
+3. Click the Application Copilot extension icon.
+4. Select **Scan this page**.
+5. Confirm the preview reports 10 fields: 7 recognized, 1 unknown, 1 unsupported, and 1 excluded.
+
+The scanner reads field structure only: labels, control types, names, required status, and available dropdown/radio options. It does not read entered values, modify fields, upload files, or submit forms.
+
 After changing extension code, run `npm run build` again and press the reload button for the extension on `chrome://extensions`. The Node API automatically restarts when its source changes.
 
 ## Useful checks
@@ -74,7 +92,8 @@ JSON is used during this first transition to keep the proven profile model intac
 
 - The API binds to `127.0.0.1`, so it is not exposed to the local network.
 - Browser access is allowed for Chrome-extension pages and the local development UI.
-- The extension requests access only to the local API; it cannot inspect job pages yet.
+- The extension uses `activeTab` to inspect a page only after the user clicks **Scan this page**.
+- The scanner does not receive permanent access to every website.
 - No data is transmitted to an external server.
 - No AI provider is connected.
 - Nothing submits applications automatically.
@@ -83,8 +102,8 @@ Before distributing the extension, the local API will need extension authenticat
 
 ## Planned milestones
 
-1. React/Node/SQLite transition — **current**
-2. Page-field detection and preview
+1. React/Node/SQLite transition — **complete**
+2. Page-field detection and preview — **current**
 3. Standard-field autofill
 4. Unknown-question inbox and learned-answer memory
 5. Similar-question matching

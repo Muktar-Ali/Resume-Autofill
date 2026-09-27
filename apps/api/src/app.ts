@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { normalizeProfile, type ApplicantProfile } from "@application-copilot/shared";
 import type { ProfileRepository } from "./database.js";
+import { demoApplicationPage } from "./demo-page.js";
 
 const MAX_BODY_BYTES = 100_000;
 
@@ -16,6 +17,14 @@ function setCors(request: IncomingMessage, response: ServerResponse) {
 function sendJson(response: ServerResponse, status: number, value: unknown) {
   response.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
   response.end(JSON.stringify(value));
+}
+
+function sendHtml(response: ServerResponse, status: number, value: string) {
+  response.writeHead(status, {
+    "Content-Type": "text/html; charset=utf-8",
+    "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'"
+  });
+  response.end(value);
 }
 
 async function readJson(request: IncomingMessage): Promise<unknown> {
@@ -42,6 +51,11 @@ export function createRequestHandler(repository: ProfileRepository) {
 
     if (request.url === "/health" && request.method === "GET") {
       sendJson(response, 200, { status: "ok" });
+      return;
+    }
+
+    if (request.url === "/demo" && request.method === "GET") {
+      sendHtml(response, 200, demoApplicationPage);
       return;
     }
 
