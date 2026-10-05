@@ -27,7 +27,9 @@ button.secondary:hover { background: #edf2ee; }
 .field-result-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .badge { border-radius: 999px; padding: 3px 7px; font-size: 9px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
 .badge.recognized { background: #dcecdf; color: #245b39; }
+.badge.learned { background: #dce8f5; color: #28577d; }
 .badge.unknown { background: #f5e8bf; color: #715916; }
+.badge.draft { background: #ece1f4; color: #65417c; }
 .badge.unsupported { background: #e6e8eb; color: #525b65; }
 .badge.excluded { background: #f3dddd; color: #7c3434; }
 .control-type { color: #7a837e; font-size: 10px; text-transform: uppercase; }
@@ -36,6 +38,13 @@ button.secondary:hover { background: #edf2ee; }
 .field-result h2 { margin: 0 0 4px; font-size: 13px; line-height: 1.3; }
 .field-result p { margin: 0; color: #69736d; font-size: 11px; line-height: 1.4; }
 .field-result code { color: #2b684b; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.answer-editor { display: grid; grid-template-columns: 1fr auto; gap: 7px; margin-top: 9px; }
+.answer-editor input,
+.answer-editor select,
+.answer-editor textarea { min-width: 0; border: 1px solid #bdc7c0; border-radius: 7px; padding: 7px 8px; background: white; color: #17231d; font: inherit; font-size: 11px; }
+.answer-editor textarea { grid-column: 1 / -1; resize: vertical; }
+.answer-editor .save-answer { padding: 7px 9px; font-size: 10px; }
+.answer-editor textarea + .save-answer { grid-column: 2; }
 .field-result .fill-result { margin-top: 7px; padding-top: 7px; border-top: 1px solid #e1e4e1; font-weight: 700; }
 .field-result .fill-result.filled { color: #25633e; }
 .field-result .fill-result.skipped-nonempty { color: #755d1b; }

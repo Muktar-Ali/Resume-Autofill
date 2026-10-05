@@ -55,7 +55,50 @@ export interface DetectedField {
   locator: FieldLocator;
 }
 
-export type FieldClassification = "recognized" | "unknown" | "unsupported" | "excluded";
+export type FieldClassification =
+  | "recognized"
+  | "learned"
+  | "unknown"
+  | "draft"
+  | "unsupported"
+  | "excluded";
+
+export interface LearnedAnswer {
+  id: number;
+  question: string;
+  normalizedQuestion: string;
+  answer: string;
+  controlType: DetectedControlType;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LearnedAnswerInput {
+  question: string;
+  answer: string;
+  controlType: DetectedControlType;
+}
+
+export interface LearnedQuestionCandidate {
+  fieldId: string;
+  question: string;
+  controlType: DetectedControlType;
+}
+
+export interface LearnedAnswerMatch {
+  fieldId: string;
+  learnedAnswer: LearnedAnswer | null;
+}
+
+export function normalizeQuestion(question: string): string {
+  return question
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/[’']/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 export interface FieldFillInstruction {
   fieldId: string;

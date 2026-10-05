@@ -1,9 +1,19 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { normalizeProfile, type ApplicantProfile } from "@application-copilot/shared";
-import type { ProfileRepository } from "./database.js";
+import {
+  normalizeProfile,
+  type ApplicantProfile,
+  type DetectedControlType,
+  type LearnedAnswerInput,
+  type LearnedQuestionCandidate
+} from "@application-copilot/shared";
+import type { ApplicationRepository } from "./database.js";
 import { demoApplicationPage } from "./demo-page.js";
 
 const MAX_BODY_BYTES = 100_000;
+const CONTROL_TYPES: DetectedControlType[] = [
+  "text", "email", "tel", "url", "number", "date", "select", "textarea",
+  "checkbox", "radio", "file", "password", "other"
+];
 
 function setCors(request: IncomingMessage, response: ServerResponse) {
   const origin = request.headers.origin;
@@ -11,7 +21,7 @@ function setCors(request: IncomingMessage, response: ServerResponse) {
   if (origin && allowed) response.setHeader("Access-Control-Allow-Origin", origin);
   response.setHeader("Vary", "Origin");
   response.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  response.setHeader("Access-Control-Allow-Methods", "GET, PUT, OPTIONS");
+  response.setHeader("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS");
 }
 
 function sendJson(response: ServerResponse, status: number, value: unknown) {
@@ -39,9 +49,46 @@ async function readJson(request: IncomingMessage): Promise<unknown> {
   return JSON.parse(Buffer.concat(chunks).toString("utf8"));
 }
 
-export function createRequestHandler(repository: ProfileRepository) {
+function isControlType(value: unknown): value is DetectedControlType {
+  return typeof value === "string" && CONTROL_TYPES.includes(value as DetectedControlType);
+}
+
+function parseLearnedAnswerInput(value: unknown): LearnedAnswerInput {
+  if (!value || typeof value !== "object") throw new Error("Expected an object");
+  const candidate = value as Record<string, unknown>;
+  const question = typeof candidate.question === "string" ? candidate.question.trim() : "";
+  const answer = typeof candidate.answer === "string" ? candidate.answer.trim() : "";
+
+  if (!question || question.length > 1_000) throw new Error("Question is invalid");
+  if (!answer || answer.length > 10_000) throw new Error("Answer is invalid");
+  if (!isControlType(candidate.controlType) || ["password", "file"].includes(candidate.controlType)) {
+    throw new Error("Control type is invalid");
+  }
+
+  return { question, answer, controlType: candidate.controlType };
+}
+
+function parseQuestionCandidates(value: unknown): LearnedQuestionCandidate[] {
+  if (!value || typeof value !== "object") throw new Error("Expected an object");
+  const questions = (value as Record<string, unknown>).questions;
+  if (!Array.isArray(questions) || questions.length > 100) throw new Error("Questions are invalid");
+
+  return questions.map((value) => {
+    if (!value || typeof value !== "object") throw new Error("Question is invalid");
+    const candidate = value as Record<string, unknown>;
+    const fieldId = typeof candidate.fieldId === "string" ? candidate.fieldId : "";
+    const question = typeof candidate.question === "string" ? candidate.question.trim() : "";
+    if (!fieldId || !question || question.length > 1_000 || !isControlType(candidate.controlType)) {
+      throw new Error("Question is invalid");
+    }
+    return { fieldId, question, controlType: candidate.controlType };
+  });
+}
+
+export function createRequestHandler(repository: ApplicationRepository) {
   return async (request: IncomingMessage, response: ServerResponse) => {
     setCors(request, response);
+    const pathname = new URL(request.url ?? "/", "http://127.0.0.1").pathname;
 
     if (request.method === "OPTIONS") {
       response.writeHead(204);
@@ -49,28 +96,61 @@ export function createRequestHandler(repository: ProfileRepository) {
       return;
     }
 
-    if (request.url === "/health" && request.method === "GET") {
+    if (pathname === "/health" && request.method === "GET") {
       sendJson(response, 200, { status: "ok" });
       return;
     }
 
-    if (request.url === "/demo" && request.method === "GET") {
+    if (pathname === "/demo" && request.method === "GET") {
       sendHtml(response, 200, demoApplicationPage);
       return;
     }
 
-    if (request.url === "/api/profile" && request.method === "GET") {
+    if (pathname === "/api/profile" && request.method === "GET") {
       sendJson(response, 200, repository.getProfile());
       return;
     }
 
-    if (request.url === "/api/profile" && request.method === "PUT") {
+    if (pathname === "/api/profile" && request.method === "PUT") {
       try {
         const body = normalizeProfile((await readJson(request)) as Partial<ApplicantProfile>);
         sendJson(response, 200, repository.saveProfile(body));
       } catch {
         sendJson(response, 400, { error: "The profile payload is invalid." });
       }
+      return;
+    }
+
+    if (pathname === "/api/answers" && request.method === "GET") {
+      sendJson(response, 200, repository.listLearnedAnswers());
+      return;
+    }
+
+    if (pathname === "/api/answers" && request.method === "POST") {
+      try {
+        const body = parseLearnedAnswerInput(await readJson(request));
+        sendJson(response, 201, repository.saveLearnedAnswer(body));
+      } catch {
+        sendJson(response, 400, { error: "The learned answer payload is invalid." });
+      }
+      return;
+    }
+
+    if (pathname === "/api/answers/match" && request.method === "POST") {
+      try {
+        const questions = parseQuestionCandidates(await readJson(request));
+        sendJson(response, 200, repository.matchLearnedAnswers(questions));
+      } catch {
+        sendJson(response, 400, { error: "The question match payload is invalid." });
+      }
+      return;
+    }
+
+    const answerIdMatch = pathname.match(/^\/api\/answers\/(\d+)$/);
+    if (answerIdMatch && request.method === "DELETE") {
+      const deleted = repository.deleteLearnedAnswer(Number(answerIdMatch[1]));
+      if (!deleted) sendJson(response, 404, { error: "Learned answer not found." });
+      else sendJson(response, 200, { deleted: true });
       return;
     }
 

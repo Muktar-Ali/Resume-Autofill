@@ -63,9 +63,11 @@ Then:
 2. Open the demo application in a regular tab.
 3. Click the Application Copilot extension icon.
 4. Select **Scan this page**.
-5. Confirm the preview reports 10 fields: 7 recognized, 1 unknown, 1 unsupported, and 1 excluded.
-6. Review the checked recognized fields and select **Fill selected fields**.
-7. Confirm only empty fields with saved profile values are changed.
+5. Confirm the preview reports 11 fields: 7 profile fields, 1 unknown relocation question, 1 draft prompt, 1 unsupported upload, and 1 excluded password.
+6. Choose an answer for **Are you willing to relocate?** and select **Save answer**.
+7. Confirm the card changes from **Unknown** to **Learned**.
+8. Review the checked profile and learned fields and select **Fill selected fields**.
+9. Refresh the demo, scan again, and confirm the relocation answer is remembered.
 
 The scanner reads field structure only: labels, control types, names, required status, and available dropdown/radio options. It does not read entered values. Filling is a separate user-triggered action that skips existing values, file uploads, passwords, unknown questions, and form submission.
 
@@ -83,12 +85,14 @@ npm run build
 
 The profile is saved in `data/application-copilot.db`. The extension itself keeps no personal profile data now; it makes requests to the local Node API. The database file is ignored by Git so personal information cannot be accidentally committed.
 
-The current SQLite schema contains a singleton `profiles` record with:
+The SQLite schema contains a singleton `profiles` record with:
 
 - A versioned JSON profile document.
 - An update timestamp.
 
-JSON is used during this first transition to keep the proven profile model intact. Employment history, learned answers, question aliases, applications, and AI drafts will receive dedicated relational tables as those features are implemented.
+JSON is used for the singleton profile to keep the proven profile model intact. Employment history, question aliases, applications, and AI drafts will receive dedicated relational tables as those features are implemented.
+
+Reusable unfamiliar questions are stored separately in `learned_answers`. Each record contains the original question, a normalized unique question, the approved answer, its control type, and timestamps. Current matching is deterministic: differences in capitalization, punctuation, apostrophes, and spacing match the same record. Semantic matching between differently worded questions comes later.
 
 ## Current security boundary
 
@@ -107,8 +111,8 @@ Before distributing the extension, the local API will need extension authenticat
 
 1. React/Node/SQLite transition — **complete**
 2. Page-field detection and preview — **complete**
-3. Standard-field autofill — **current**
-4. Unknown-question inbox and learned-answer memory
+3. Standard-field autofill — **complete**
+4. Exact learned-answer memory — **current**
 5. Similar-question matching
 6. Secure, job-specific AI drafting
 7. Export, import, deletion, and expanded ATS compatibility

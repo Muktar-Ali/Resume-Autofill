@@ -2,12 +2,14 @@ import type {
   ApplicantProfile,
   DetectedField,
   FieldClassification,
+  LearnedAnswer,
   ProfileFieldPath
 } from "@application-copilot/shared";
 
 export interface FieldPreview extends DetectedField {
   classification: FieldClassification;
   profilePath: ProfileFieldPath | null;
+  learnedAnswer: LearnedAnswer | null;
   hasSavedValue: boolean;
   explanation: string;
 }
@@ -56,6 +58,16 @@ export function matchProfilePath(label: string): ProfileFieldPath | null {
   return null;
 }
 
+export function isDraftPrompt(label: string): boolean {
+  const normalized = normalizeFieldLabel(label);
+  return [
+    /^why .*\b(work|join|interested)\b/,
+    /\bwhy (this|our) (company|role|position|organization)\b/,
+    /\bcover letter\b/,
+    /\bpersonal statement\b/
+  ].some((pattern) => pattern.test(normalized));
+}
+
 export function getProfileValue(profile: ApplicantProfile, path: ProfileFieldPath): string {
   const [group, field] = path.split(".") as [keyof ApplicantProfile, string];
   const section = profile[group];
@@ -74,6 +86,7 @@ export function createFieldPreview(
       ...field,
       classification: "excluded",
       profilePath: null,
+      learnedAnswer: null,
       hasSavedValue: false,
       explanation: "Password fields are never handled."
     };
@@ -84,8 +97,20 @@ export function createFieldPreview(
       ...field,
       classification: "unsupported",
       profilePath: null,
+      learnedAnswer: null,
       hasSavedValue: false,
       explanation: "File uploads will be handled in a later milestone."
+    };
+  }
+
+  if (isDraftPrompt(field.label)) {
+    return {
+      ...field,
+      classification: "draft",
+      profilePath: null,
+      learnedAnswer: null,
+      hasSavedValue: false,
+      explanation: "This prompt needs a job-specific draft and will not reuse a generic answer."
     };
   }
 
@@ -96,6 +121,7 @@ export function createFieldPreview(
       ...field,
       classification: "unknown",
       profilePath: null,
+      learnedAnswer: null,
       hasSavedValue: false,
       explanation: "No safe profile match was found."
     };
@@ -105,7 +131,23 @@ export function createFieldPreview(
     ...field,
     classification: "recognized",
     profilePath,
+    learnedAnswer: null,
     hasSavedValue: Boolean(profile && getProfileValue(profile, profilePath).trim()),
     explanation: profile ? "Matched to the applicant profile." : "Matched, but the profile API is unavailable."
+  };
+}
+
+export function applyLearnedAnswer(
+  preview: FieldPreview,
+  learnedAnswer: LearnedAnswer | null
+): FieldPreview {
+  if (preview.classification !== "unknown" || !learnedAnswer) return preview;
+
+  return {
+    ...preview,
+    classification: "learned",
+    learnedAnswer,
+    hasSavedValue: true,
+    explanation: "Matched to an approved learned answer."
   };
 }

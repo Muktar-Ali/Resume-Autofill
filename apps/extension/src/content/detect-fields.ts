@@ -85,7 +85,7 @@ export function scanApplicationPage(): DetectedField[] {
 
   function selectOptions(control: HTMLSelectElement): DetectedFieldOption[] {
     return Array.from(control.options)
-      .filter((option) => option.value || cleanText(option.textContent))
+      .filter((option) => !option.disabled && Boolean(option.value))
       .map((option) => ({ value: option.value, label: cleanText(option.textContent) }));
   }
 

@@ -47,6 +47,13 @@ export const demoApplicationPage = `<!doctype html>
         <label><input type="radio" name="authorized" value="no" /> No</label>
       </fieldset>
 
+      <label for="relocation">Are you willing to relocate?</label>
+      <select id="relocation" name="relocation">
+        <option value="">Choose an answer</option>
+        <option value="yes">Yes</option>
+        <option value="no">No</option>
+      </select>
+
       <label for="motivation">Why do you want to work here?</label>
       <textarea id="motivation" name="motivation"></textarea>
 

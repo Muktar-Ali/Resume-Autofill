@@ -1,4 +1,10 @@
-import type { ApplicantProfile } from "@application-copilot/shared";
+import type {
+  ApplicantProfile,
+  LearnedAnswer,
+  LearnedAnswerInput,
+  LearnedAnswerMatch,
+  LearnedQuestionCandidate
+} from "@application-copilot/shared";
 
 const API_BASE_URL = "http://127.0.0.1:4318";
 
@@ -27,4 +33,28 @@ export function saveProfile(profile: ApplicantProfile): Promise<ApplicantProfile
     method: "PUT",
     body: JSON.stringify(profile)
   });
+}
+
+export function getLearnedAnswers(): Promise<LearnedAnswer[]> {
+  return request<LearnedAnswer[]>("/api/answers");
+}
+
+export function saveLearnedAnswer(input: LearnedAnswerInput): Promise<LearnedAnswer> {
+  return request<LearnedAnswer>("/api/answers", {
+    method: "POST",
+    body: JSON.stringify(input)
+  });
+}
+
+export function matchLearnedAnswers(
+  questions: LearnedQuestionCandidate[]
+): Promise<LearnedAnswerMatch[]> {
+  return request<LearnedAnswerMatch[]>("/api/answers/match", {
+    method: "POST",
+    body: JSON.stringify({ questions })
+  });
+}
+
+export function deleteLearnedAnswer(id: number): Promise<{ deleted: true }> {
+  return request<{ deleted: true }>(`/api/answers/${id}`, { method: "DELETE" });
 }
