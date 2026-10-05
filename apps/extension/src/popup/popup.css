@@ -28,6 +28,7 @@ button.secondary:hover { background: #edf2ee; }
 .badge { border-radius: 999px; padding: 3px 7px; font-size: 9px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
 .badge.recognized { background: #dcecdf; color: #245b39; }
 .badge.learned { background: #dce8f5; color: #28577d; }
+.badge.suggested { background: #f2dfc8; color: #764a18; }
 .badge.unknown { background: #f5e8bf; color: #715916; }
 .badge.draft { background: #ece1f4; color: #65417c; }
 .badge.unsupported { background: #e6e8eb; color: #525b65; }
@@ -45,6 +46,12 @@ button.secondary:hover { background: #edf2ee; }
 .answer-editor textarea { grid-column: 1 / -1; resize: vertical; }
 .answer-editor .save-answer { padding: 7px 9px; font-size: 10px; }
 .answer-editor textarea + .save-answer { grid-column: 2; }
+.learned-answer-preview { display: grid; gap: 3px; margin-top: 7px; padding: 7px 8px; border-radius: 7px; background: #eef4f9; }
+.learned-answer-preview p strong { color: #244e70; }
+.match-suggestion { display: grid; gap: 5px; margin-top: 9px; padding: 9px; border: 1px solid #e2c99f; border-radius: 8px; background: #fff8ec; }
+.match-suggestion p strong { color: #51391d; }
+.suggestion-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 3px; }
+.suggestion-actions button { padding: 7px 9px; font-size: 10px; }
 .field-result .fill-result { margin-top: 7px; padding-top: 7px; border-top: 1px solid #e1e4e1; font-weight: 700; }
 .field-result .fill-result.filled { color: #25633e; }
 .field-result .fill-result.skipped-nonempty { color: #755d1b; }

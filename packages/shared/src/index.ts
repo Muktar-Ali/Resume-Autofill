@@ -58,6 +58,7 @@ export interface DetectedField {
 export type FieldClassification =
   | "recognized"
   | "learned"
+  | "suggested"
   | "unknown"
   | "draft"
   | "unsupported"
@@ -88,6 +89,15 @@ export interface LearnedQuestionCandidate {
 export interface LearnedAnswerMatch {
   fieldId: string;
   learnedAnswer: LearnedAnswer | null;
+  matchKind: "exact" | "semantic" | "suggestion" | "none";
+  similarity: number | null;
+}
+
+export interface SemanticMatchingStatus {
+  enabled: boolean;
+  model: string | null;
+  automaticMatchThreshold: number;
+  suggestionThreshold: number;
 }
 
 export function normalizeQuestion(question: string): string {

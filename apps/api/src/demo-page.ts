@@ -68,3 +68,7 @@ export const demoApplicationPage = `<!doctype html>
     </form>
   </body>
 </html>`;
+
+export const semanticDemoApplicationPage = demoApplicationPage
+  .replace("Detection Demo", "Semantic Matching Demo")
+  .replace("Are you willing to relocate?", "Would you be open to moving for this position?");

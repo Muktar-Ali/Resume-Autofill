@@ -3,7 +3,8 @@ import type {
   LearnedAnswer,
   LearnedAnswerInput,
   LearnedAnswerMatch,
-  LearnedQuestionCandidate
+  LearnedQuestionCandidate,
+  SemanticMatchingStatus
 } from "@application-copilot/shared";
 
 const API_BASE_URL = "http://127.0.0.1:4318";
@@ -53,6 +54,10 @@ export function matchLearnedAnswers(
     method: "POST",
     body: JSON.stringify({ questions })
   });
+}
+
+export function getSemanticMatchingStatus(): Promise<SemanticMatchingStatus> {
+  return request<SemanticMatchingStatus>("/api/answers/semantic-status");
 }
 
 export function deleteLearnedAnswer(id: number): Promise<{ deleted: true }> {

@@ -11,7 +11,9 @@
   },
   "dependencies": {
     "@application-copilot/shared": "0.1.0",
-    "better-sqlite3": "^12.2.0"
+    "better-sqlite3": "^12.2.0",
+    "dotenv": "^18.0.5",
+    "openai": "^7.28.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

@@ -4,6 +4,7 @@ import { createEmptyProfile, type DetectedField, type LearnedAnswer } from "@app
 import {
   applyLearnedAnswer,
   createFieldPreview,
+  dismissLearnedSuggestion,
   isDraftPrompt,
   matchProfilePath,
   normalizeFieldLabel
@@ -61,9 +62,39 @@ test("promotes an exact unknown match to a learned field", () => {
     updatedAt: "2026-10-01T00:00:00.000Z"
   };
 
-  const learned = applyLearnedAnswer(preview, learnedAnswer);
+  const learned = applyLearnedAnswer(preview, {
+    fieldId: preview.fieldId,
+    learnedAnswer,
+    matchKind: "exact",
+    similarity: null
+  });
 
   assert.equal(preview.classification, "unknown");
   assert.equal(learned.classification, "learned");
   assert.equal(learned.learnedAnswer?.answer, "yes");
+});
+
+test("keeps a medium-confidence semantic match unselectable until confirmed", () => {
+  const preview = createFieldPreview(field("Would you move for this position?", "select"), null);
+  const learnedAnswer: LearnedAnswer = {
+    id: 1,
+    question: "Are you willing to relocate?",
+    normalizedQuestion: "are you willing to relocate",
+    answer: "yes",
+    controlType: "select",
+    createdAt: "2026-10-01T00:00:00.000Z",
+    updatedAt: "2026-10-01T00:00:00.000Z"
+  };
+
+  const suggestion = applyLearnedAnswer(preview, {
+    fieldId: preview.fieldId,
+    learnedAnswer,
+    matchKind: "suggestion",
+    similarity: 0.71
+  });
+
+  assert.equal(suggestion.classification, "suggested");
+  assert.equal(suggestion.hasSavedValue, false);
+  assert.equal(suggestion.similarity, 0.71);
+  assert.equal(dismissLearnedSuggestion(suggestion).classification, "unknown");
 });

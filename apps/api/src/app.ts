@@ -7,7 +7,11 @@ import {
   type LearnedQuestionCandidate
 } from "@application-copilot/shared";
 import type { ApplicationRepository } from "./database.js";
-import { demoApplicationPage } from "./demo-page.js";
+import {
+  createAnswerMatchingService,
+  type AnswerMatchingService
+} from "./answer-matcher.js";
+import { demoApplicationPage, semanticDemoApplicationPage } from "./demo-page.js";
 
 const MAX_BODY_BYTES = 100_000;
 const CONTROL_TYPES: DetectedControlType[] = [
@@ -32,7 +36,7 @@ function sendJson(response: ServerResponse, status: number, value: unknown) {
 function sendHtml(response: ServerResponse, status: number, value: string) {
   response.writeHead(status, {
     "Content-Type": "text/html; charset=utf-8",
-    "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'"
+    "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'"
   });
   response.end(value);
 }
@@ -85,7 +89,10 @@ function parseQuestionCandidates(value: unknown): LearnedQuestionCandidate[] {
   });
 }
 
-export function createRequestHandler(repository: ApplicationRepository) {
+export function createRequestHandler(
+  repository: ApplicationRepository,
+  answerMatcher: AnswerMatchingService = createAnswerMatchingService(repository, null)
+) {
   return async (request: IncomingMessage, response: ServerResponse) => {
     setCors(request, response);
     const pathname = new URL(request.url ?? "/", "http://127.0.0.1").pathname;
@@ -103,6 +110,11 @@ export function createRequestHandler(repository: ApplicationRepository) {
 
     if (pathname === "/demo" && request.method === "GET") {
       sendHtml(response, 200, demoApplicationPage);
+      return;
+    }
+
+    if (pathname === "/demo-semantic" && request.method === "GET") {
+      sendHtml(response, 200, semanticDemoApplicationPage);
       return;
     }
 
@@ -129,7 +141,7 @@ export function createRequestHandler(repository: ApplicationRepository) {
     if (pathname === "/api/answers" && request.method === "POST") {
       try {
         const body = parseLearnedAnswerInput(await readJson(request));
-        sendJson(response, 201, repository.saveLearnedAnswer(body));
+        sendJson(response, 201, await answerMatcher.saveAnswer(body));
       } catch {
         sendJson(response, 400, { error: "The learned answer payload is invalid." });
       }
@@ -139,10 +151,15 @@ export function createRequestHandler(repository: ApplicationRepository) {
     if (pathname === "/api/answers/match" && request.method === "POST") {
       try {
         const questions = parseQuestionCandidates(await readJson(request));
-        sendJson(response, 200, repository.matchLearnedAnswers(questions));
+        sendJson(response, 200, await answerMatcher.matchAnswers(questions));
       } catch {
         sendJson(response, 400, { error: "The question match payload is invalid." });
       }
+      return;
+    }
+
+    if (pathname === "/api/answers/semantic-status" && request.method === "GET") {
+      sendJson(response, 200, answerMatcher.getStatus());
       return;
     }
 

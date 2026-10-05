@@ -12,6 +12,7 @@ import { fillApplicationFields } from "../content/fill-fields";
 import {
   applyLearnedAnswer,
   createFieldPreview,
+  dismissLearnedSuggestion,
   getProfileValue,
   type FieldPreview
 } from "../matching/field-matcher";
@@ -20,6 +21,7 @@ import "./popup.css";
 const CLASSIFICATION_LABELS: Record<FieldPreview["classification"], string> = {
   recognized: "Profile",
   learned: "Learned",
+  suggested: "Confirm match",
   unknown: "Unknown",
   draft: "Draft later",
   unsupported: "Unsupported",
@@ -90,9 +92,17 @@ function Popup() {
       if (unknownQuestions.length) {
         try {
           const matches = await matchLearnedAnswers(unknownQuestions);
-          const matchByFieldId = new Map(matches.map((match) => [match.fieldId, match.learnedAnswer]));
+          const matchByFieldId = new Map(matches.map((match) => [match.fieldId, match]));
           resolvedPreviews = initialPreviews.map((preview) =>
-            applyLearnedAnswer(preview, matchByFieldId.get(preview.fieldId) ?? null)
+            applyLearnedAnswer(
+              preview,
+              matchByFieldId.get(preview.fieldId) ?? {
+                fieldId: preview.fieldId,
+                learnedAnswer: null,
+                matchKind: "none",
+                similarity: null
+              }
+            )
           );
         } catch {
           setActionError("Fields were scanned, but learned answers could not be checked. Confirm the local server is running.");
@@ -137,7 +147,19 @@ function Popup() {
       });
       setResults((current) =>
         current?.map((item) =>
-          item.fieldId === preview.fieldId ? applyLearnedAnswer(item, learnedAnswer) : item
+          item.fieldId === preview.fieldId
+            ? applyLearnedAnswer(
+                item.classification === "suggested"
+                  ? dismissLearnedSuggestion(item)
+                  : item,
+                {
+                  fieldId: item.fieldId,
+                  learnedAnswer,
+                  matchKind: "exact",
+                  similarity: null
+                }
+              )
+            : item
         ) ?? null
       );
       setSelectedIds((current) => new Set(current).add(preview.fieldId));
@@ -151,6 +173,45 @@ function Popup() {
     } finally {
       setSavingAnswerId(null);
     }
+  }
+
+  async function confirmSuggestedAnswer(preview: FieldPreview) {
+    if (!preview.learnedAnswer) return;
+    setSavingAnswerId(preview.fieldId);
+    setActionError("");
+
+    try {
+      const learnedAnswer = await saveLearnedAnswer({
+        question: preview.label,
+        answer: preview.learnedAnswer.answer,
+        controlType: preview.controlType
+      });
+      setResults((current) =>
+        current?.map((item) =>
+          item.fieldId === preview.fieldId
+            ? applyLearnedAnswer(dismissLearnedSuggestion(item), {
+                fieldId: item.fieldId,
+                learnedAnswer,
+                matchKind: "exact",
+                similarity: null
+              })
+            : item
+        ) ?? null
+      );
+      setSelectedIds((current) => new Set(current).add(preview.fieldId));
+    } catch (error) {
+      showActionError(error, "The suggested answer could not be confirmed.");
+    } finally {
+      setSavingAnswerId(null);
+    }
+  }
+
+  function rejectSuggestedAnswer(preview: FieldPreview) {
+    setResults((current) =>
+      current?.map((item) =>
+        item.fieldId === preview.fieldId ? dismissLearnedSuggestion(item) : item
+      ) ?? null
+    );
   }
 
   async function fillSelectedFields() {
@@ -247,6 +308,8 @@ function Popup() {
             setAnswerDrafts((current) => ({ ...current, [fieldId]: value }))
           }
           onSaveAnswer={saveUnknownAnswer}
+          onConfirmSuggestion={confirmSuggestedAnswer}
+          onRejectSuggestion={rejectSuggestedAnswer}
           onFill={fillSelectedFields}
         />
       )}
@@ -266,6 +329,8 @@ function ScanResults({
   onToggle,
   onAnswerChange,
   onSaveAnswer,
+  onConfirmSuggestion,
+  onRejectSuggestion,
   onFill
 }: {
   results: FieldPreview[];
@@ -277,12 +342,15 @@ function ScanResults({
   onToggle: (fieldId: string) => void;
   onAnswerChange: (fieldId: string, value: string) => void;
   onSaveAnswer: (preview: FieldPreview) => void;
+  onConfirmSuggestion: (preview: FieldPreview) => void;
+  onRejectSuggestion: (preview: FieldPreview) => void;
   onFill: () => void;
 }) {
   const known = results.filter((result) =>
     ["recognized", "learned"].includes(result.classification)
   ).length;
   const unknown = results.filter((result) => result.classification === "unknown").length;
+  const suggestions = results.filter((result) => result.classification === "suggested").length;
   const filled = fillResults.filter((result) => result.status === "filled").length;
 
   if (!results.length) {
@@ -293,7 +361,7 @@ function ScanResults({
     <section className="results" aria-label="Detected application fields">
       <div className="results-summary">
         <strong>{results.length} fields detected</strong>
-        <span>{known} known · {unknown} unknown</span>
+        <span>{known} known · {suggestions} to confirm · {unknown} unknown</span>
       </div>
       <div className="field-list">
         {results.map((result) => {
@@ -326,6 +394,19 @@ function ScanResults({
               ) : (
                 <p>{result.explanation}</p>
               )}
+              {result.classification === "learned" && result.learnedAnswer && (
+                <div className="learned-answer-preview">
+                  <p><strong>Saved answer:</strong> {result.learnedAnswer.answer}</p>
+                  {result.learnedMatchKind === "semantic" && (
+                    <p>
+                      Matched from “{result.learnedAnswer.question}”
+                      {result.similarity !== null
+                        ? ` · ${Math.round(result.similarity * 100)}% similar`
+                        : ""}
+                    </p>
+                  )}
+                </div>
+              )}
               {result.classification === "unknown" && (
                 <AnswerEditor
                   preview={result}
@@ -334,6 +415,36 @@ function ScanResults({
                   onChange={(value) => onAnswerChange(result.fieldId, value)}
                   onSave={() => onSaveAnswer(result)}
                 />
+              )}
+              {result.classification === "suggested" && result.learnedAnswer && (
+                <div className="match-suggestion">
+                  <p>
+                    <strong>Suggested answer:</strong> {result.learnedAnswer.answer}
+                  </p>
+                  <p>
+                    Learned from “{result.learnedAnswer.question}”
+                    {result.similarity !== null
+                      ? ` · ${Math.round(result.similarity * 100)}% similar`
+                      : ""}
+                  </p>
+                  <div className="suggestion-actions">
+                    <button
+                      type="button"
+                      onClick={() => onConfirmSuggestion(result)}
+                      disabled={savingAnswerId === result.fieldId}
+                    >
+                      {savingAnswerId === result.fieldId ? "Saving…" : "Use answer"}
+                    </button>
+                    <button
+                      className="secondary"
+                      type="button"
+                      onClick={() => onRejectSuggestion(result)}
+                      disabled={savingAnswerId === result.fieldId}
+                    >
+                      Not the same
+                    </button>
+                  </div>
+                </div>
               )}
               {fillResult && <p className={`fill-result ${fillResult.status}`}>{fillResult.message}</p>}
             </article>

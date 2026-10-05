@@ -3,6 +3,7 @@ import type {
   DetectedField,
   FieldClassification,
   LearnedAnswer,
+  LearnedAnswerMatch,
   ProfileFieldPath
 } from "@application-copilot/shared";
 
@@ -10,6 +11,8 @@ export interface FieldPreview extends DetectedField {
   classification: FieldClassification;
   profilePath: ProfileFieldPath | null;
   learnedAnswer: LearnedAnswer | null;
+  learnedMatchKind: LearnedAnswerMatch["matchKind"] | null;
+  similarity: number | null;
   hasSavedValue: boolean;
   explanation: string;
 }
@@ -87,6 +90,8 @@ export function createFieldPreview(
       classification: "excluded",
       profilePath: null,
       learnedAnswer: null,
+      learnedMatchKind: null,
+      similarity: null,
       hasSavedValue: false,
       explanation: "Password fields are never handled."
     };
@@ -98,6 +103,8 @@ export function createFieldPreview(
       classification: "unsupported",
       profilePath: null,
       learnedAnswer: null,
+      learnedMatchKind: null,
+      similarity: null,
       hasSavedValue: false,
       explanation: "File uploads will be handled in a later milestone."
     };
@@ -109,6 +116,8 @@ export function createFieldPreview(
       classification: "draft",
       profilePath: null,
       learnedAnswer: null,
+      learnedMatchKind: null,
+      similarity: null,
       hasSavedValue: false,
       explanation: "This prompt needs a job-specific draft and will not reuse a generic answer."
     };
@@ -122,6 +131,8 @@ export function createFieldPreview(
       classification: "unknown",
       profilePath: null,
       learnedAnswer: null,
+      learnedMatchKind: null,
+      similarity: null,
       hasSavedValue: false,
       explanation: "No safe profile match was found."
     };
@@ -132,6 +143,8 @@ export function createFieldPreview(
     classification: "recognized",
     profilePath,
     learnedAnswer: null,
+    learnedMatchKind: null,
+    similarity: null,
     hasSavedValue: Boolean(profile && getProfileValue(profile, profilePath).trim()),
     explanation: profile ? "Matched to the applicant profile." : "Matched, but the profile API is unavailable."
   };
@@ -139,15 +152,46 @@ export function createFieldPreview(
 
 export function applyLearnedAnswer(
   preview: FieldPreview,
-  learnedAnswer: LearnedAnswer | null
+  match: LearnedAnswerMatch
 ): FieldPreview {
-  if (preview.classification !== "unknown" || !learnedAnswer) return preview;
+  if (preview.classification !== "unknown" || !match.learnedAnswer) return preview;
+
+  if (match.matchKind === "suggestion") {
+    return {
+      ...preview,
+      classification: "suggested",
+      learnedAnswer: match.learnedAnswer,
+      learnedMatchKind: match.matchKind,
+      similarity: match.similarity,
+      hasSavedValue: false,
+      explanation: "A similar learned question was found. Confirm it before filling."
+    };
+  }
+
+  if (!["exact", "semantic"].includes(match.matchKind)) return preview;
 
   return {
     ...preview,
     classification: "learned",
-    learnedAnswer,
+    learnedAnswer: match.learnedAnswer,
+    learnedMatchKind: match.matchKind,
+    similarity: match.similarity,
     hasSavedValue: true,
-    explanation: "Matched to an approved learned answer."
+    explanation: match.matchKind === "semantic"
+      ? "Strongly matched to a similarly worded learned question."
+      : "Matched to an approved learned answer."
+  };
+}
+
+export function dismissLearnedSuggestion(preview: FieldPreview): FieldPreview {
+  if (preview.classification !== "suggested") return preview;
+  return {
+    ...preview,
+    classification: "unknown",
+    learnedAnswer: null,
+    learnedMatchKind: null,
+    similarity: null,
+    hasSavedValue: false,
+    explanation: "The suggested question was rejected. Enter a reusable answer if appropriate."
   };
 }
